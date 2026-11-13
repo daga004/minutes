@@ -1,0 +1,9 @@
+.venv*/
+data/
+results/hyps/
+ov-models/
+# converted model weights and tensor-key dumps (regenerate with port/convert.py)
+port/*
+!port/convert.py
+# raw transcripts of CoSHE-Eval clips (CC-BY-NC data: not redistributed); scores.md is kept
+results/*.jsonl

@@ -1,0 +1,10 @@
+# Benchmark-only dependencies (kept out of the minutes package). torch is installed separately:
+#   Linux CPU:   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   Linux CUDA:  uv pip install torch --index-url https://download.pytorch.org/whl/cu128
+#   macOS:       uv pip install torch            (MPS build from PyPI)
+transformers>=5
+accelerate
+soundfile
+numpy
+jiwer
+pyarrow
