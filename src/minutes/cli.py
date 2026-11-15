@@ -265,6 +265,14 @@ def cmd_join(args) -> int:
     return 0
 
 
+def cmd_index(args) -> int:
+    from . import index
+
+    path, added = index.backfill(_cfg())
+    print(f"{path}: {added} meeting(s) added")
+    return 0
+
+
 def cmd_watch(args) -> int:
     from . import watch
 
@@ -421,6 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
     rg = jn.add_mutually_exclusive_group()
     rg.add_argument("--record", dest="record", action="store_true", default=None, help="record regardless")
     rg.add_argument("--no-record", dest="record", action="store_false", help="only open the link")
+    add("index", cmd_index, "add missing finished meetings to the append-only meeting index")
     add("watch", cmd_watch, "detect calls and offer to record them (run as a user service)")
     se = add("set", cmd_set, "change a bar setting, e.g. `minutes set record_on_join off`")
     se.add_argument("key", choices=["record_on_join"])

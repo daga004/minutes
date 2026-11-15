@@ -26,6 +26,7 @@ minutes stats [--json]         # time in meetings: today, this week, this month,
 minutes join UID [--record | --no-record]   # open the call link; records if record_on_join is on
 minutes set record_on_join on|off
 minutes bar                    # JSON state for a status-bar widget
+minutes index                  # add finished meetings missing from the index
 minutes watch                  # call detector (run as a user service, see below)
 minutes open [ID] [--print]    # opens notes.md
 minutes backends
@@ -167,6 +168,12 @@ daemon (for example outline-sync-daemon) pushes it and writes `outline_url` into
 frontmatter. `minutes` waits for that link, copies it to the clipboard and shows it in the
 "Meeting notes ready" notification. Publishing again updates the same Outline document.
 Everyone who can read that collection can read the transcript.
+
+An index sits next to the notes (`<folder>/index.md`, or `<storage>/index.md` without Outline):
+one table, newest first, with the date, a link to the meeting's note, the duration and a
+"Key facts" line (decisions, deadlines, numbers) that Claude writes with the summary. Each
+finished meeting adds a row at the top; existing rows are never rewritten, so anything you add
+to the index by hand stays.
 
 ## Tara (default speech-to-text)
 

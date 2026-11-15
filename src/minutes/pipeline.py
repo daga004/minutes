@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import traceback
 
-from . import clean, merge, outline, summarize, transcribe
+from . import clean, index, merge, outline, summarize, transcribe
 from . import session as sess
 from .config import Config
 from .notify import notify
@@ -57,6 +57,11 @@ def finish(cfg: Config, s: sess.Session, failed_chunks: int = 0) -> None:
     except Exception as e:
         traceback.print_exc()
         problems.append(f"Outline note not written: {str(e)[:120]}")
+    try:
+        index.append(cfg, [s])
+    except Exception as e:
+        traceback.print_exc()
+        problems.append(f"index not updated: {str(e)[:120]}")
     title = s.read().get("title") or s.id
     body = "\n".join([title, link + (" (link copied)" if link and link.startswith("http")
                                        and cfg.outline.get("copy_link", True) else "")

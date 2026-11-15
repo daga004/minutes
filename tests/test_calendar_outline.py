@@ -188,3 +188,39 @@ def test_stats_ignores_short_tests(cfg):
     assert st["week"] == {"seconds": 5400, "meetings": 2}
     assert st["month"]["seconds"] == 6000 and st["all"]["meetings"] == 3
     assert stats.hm(5400) == "1h 30m" and stats.hm(600) == "10m"
+
+
+def test_index_is_append_only(cfg, tmp_path):
+    from minutes import index
+
+    s = _session_with_speech(cfg, EVENT)
+    fake = Fake()
+    s = summarize.run(cfg, s, summarizer=fake)
+    assert s.read()["key_facts"] is None  # the fake's output has no Key facts line
+    s.update(key_facts="Survey moved to 23 Nov | vendor pays")
+    cfg.outline = {"vault": str(tmp_path / "vault"), "folder": "Me/meetings", "copy_link": False}
+    outline.publish(cfg, s, wait=False)
+    p, added = index.append(cfg, [s])
+    assert added == 1 and p == tmp_path / "vault/Me/meetings/index.md"
+    text = p.read_text()
+    assert "| 2026-11-16 10:00 | [[2026-11-16-drone-sync|Drone sync]] | 25:00 | Survey moved to 23 Nov \\| vendor pays |" in text
+    # a note added by hand is kept; the same meeting is not added twice
+    p.write_text(text + "\nRemember: vendor invoices go to finance.\n")
+    assert index.append(cfg, [s])[1] == 0 and index.backfill(cfg)[1] == 0
+    assert p.read_text().endswith("go to finance.\n")
+    # a newer meeting goes on top, above the existing row, which is untouched
+    s2 = _session_with_speech(cfg, None)
+    s2.update(started_at="2026-11-17T09:00:00+05:30")
+    s2 = summarize.run(cfg, s2, summarizer=fake)
+    s2.update(title="Budget call")
+    outline.publish(cfg, s2, wait=False)
+    assert index.append(cfg, [s2])[1] == 1
+    table = p.read_text().split(index.SEPARATOR + "\n", 1)[1].splitlines()
+    assert table[0].startswith("| 2026-11-17 09:00 | [[2026-11-17-budget-call|Budget call]]")
+    assert table[1].startswith("| 2026-11-16 10:00 | [[2026-11-16-drone-sync|Drone sync]]")
+
+
+def test_key_facts_line_is_parsed():
+    facts, body = summarize.split_facts("Key facts: Budget approved at 4 lakh; launch 1 Dec.\n\n## Summary\nok")
+    assert facts == "Budget approved at 4 lakh; launch 1 Dec." and body.startswith("## Summary")
+    assert summarize.split_facts("Key facts: none\n## Summary")[0] is None

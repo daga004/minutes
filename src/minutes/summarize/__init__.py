@@ -11,6 +11,16 @@ from .base import Summarizer, available, get, register
 __all__ = ["Summarizer", "available", "get", "register", "run"]
 
 
+def split_facts(body: str) -> tuple[str | None, str]:
+    """Take a leading 'Key facts: ...' line off the summary body ('none' -> None)."""
+    lines = body.lstrip().splitlines()
+    if lines and lines[0].lower().lstrip("*_ ").startswith("key facts:"):
+        facts = lines[0].split(":", 1)[1].strip().strip("*_ ")
+        rest = "\n".join(lines[1:]).lstrip("\n")
+        return (None if facts.lower().rstrip(".") in ("", "none", "none recorded") else facts), rest
+    return None, body
+
+
 def split_title(body: str) -> tuple[str | None, str]:
     """Take the leading '# Title' line off the summarizer output."""
     lines = body.lstrip().splitlines()
@@ -41,6 +51,10 @@ def run(cfg: Config, s: sess.Session, backend: str | None = None,
         s.set_stage("summarize", "running", backend=name)
         try:
             title, body = split_title(sm.summarize(prompt_input))
+            facts, body = split_facts(body)
+            s.update(key_facts=facts)
+            if facts:
+                body = f"**Key facts:** {facts}\n\n" + body
         except Exception as e:
             s.set_stage("summarize", "failed", backend=name, error=str(e)[:500])
             raise

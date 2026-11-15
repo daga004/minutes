@@ -56,7 +56,11 @@ Write the minutes in English, as GitHub-flavoured Markdown.
 
 The very first line must be the meeting title: "# " followed by 3-8 English words naming what the
 meeting was about, specific enough to find it again months later (e.g. "# Drone survey schedule
-with vendor", not "# Team meeting"). Then exactly these sections:
+with vendor", not "# Team meeting").
+
+The second line must start with "Key facts: " followed by one sentence (at most 30 words) with the
+facts someone scanning a list of meetings must not miss: decisions, deadlines, amounts, numbers,
+commitments. Write "Key facts: none" if there are none. Then exactly these sections:
 
 ## Summary
 3-6 sentences: purpose of the meeting and what was concluded.
