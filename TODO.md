@@ -18,6 +18,9 @@ notes go to a `meetings/` folder in the personal Outline collection.
 - [x] Wait for the sync daemon's `outline_url`, copy it to the clipboard, show it in the notification
 - [x] Tests (synthetic calendar DB, no personal data), README, commit + push
 
+- [x] `notes.md` in each session = the Outline note (summary on top, full cleaned transcript)
+- [x] Meeting index `<folder>/index.md`: date, link, duration, key facts; newest on top, rows never rewritten
+
 ### 2b. Bar widget
 - [x] Next meeting + **Join** button (opens the call link, records if the toggle is on; right-click = join only)
 - [x] Global toggle "record when I join"
