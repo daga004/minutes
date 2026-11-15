@@ -70,6 +70,8 @@ def append(cfg: Config, sessions: list[sess.Session]) -> tuple[Path, int]:
     p = path(cfg)
     if not p.exists():
         sess.atomic_write_text(p, HEADER)
+    if any(row(cfg, s) for s in sessions) and outline.enabled(cfg):
+        outline.pull_first(cfg, p)  # take colleagues' edits (and Outline's reformatting) first
     text = p.read_text(encoding="utf-8")
     added = 0
     for s in sessions:

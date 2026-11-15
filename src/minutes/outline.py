@@ -149,6 +149,34 @@ def copy_to_clipboard(text: str) -> None:
         pass
 
 
+def _fm(path: Path) -> dict[str, str]:
+    try:
+        lines = split_frontmatter(path.read_text(encoding="utf-8"))[0]
+    except FileNotFoundError:
+        return {}
+    return dict(l.split(":", 1) for l in lines if ":" in l and not l[0].isspace())
+
+
+def pull_first(cfg: Config, path: Path, timeout: float | None = None) -> None:
+    """Before changing a note that is already in Outline, let the sync daemon pull the remote
+    version. Outline re-saves every pushed note in its own formatting, and colleagues may edit it;
+    changing the local file before that is pulled makes the daemon see a conflict."""
+    if not path.exists() or "outline_id" not in _fm(path):
+        return
+    unit = cfg.outline.get("sync_unit", "outline-sync")
+    if not unit or not shutil.which("systemctl"):
+        return
+    before = _fm(path).get("outline_last_synced")
+    try:
+        subprocess.run(["systemctl", "--user", "reload", unit], check=True, timeout=10,
+                       capture_output=True)
+    except (OSError, subprocess.SubprocessError):
+        return
+    deadline = time.monotonic() + float(cfg.outline.get("pull_wait_seconds", 20) if timeout is None else timeout)
+    while time.monotonic() < deadline and _fm(path).get("outline_last_synced") == before:
+        time.sleep(1)  # unchanged remotes are not rewritten, so this can run to the deadline
+
+
 def write_local(cfg: Config, s: sess.Session) -> Path | None:
     """<session>/notes.md: the same note as in Outline (summary, then the full transcript)."""
     if not s.summary_md.exists():
@@ -164,6 +192,7 @@ def publish(cfg: Config, s: sess.Session, wait: bool = True) -> tuple[Path, str 
     meta = s.read()
     path = note_path(cfg, s, meta.get("title") or "meeting")
     keep: list[str] = []
+    pull_first(cfg, path)
     if path.exists():
         keep = kept_keys(split_frontmatter(path.read_text(encoding="utf-8"))[0])
     sess.atomic_write_text(path, render(cfg, s, keep))
