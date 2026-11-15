@@ -125,13 +125,25 @@ def render(cfg: Config, s: sess.Session, keep: list[str]) -> str:
     return "---\n" + "\n".join(fm) + "\n---\n" + "\n\n".join(parts) + "\n"
 
 
+def canonical(url: str, title: str) -> str:
+    """Outline's web app opens /doc/<slug>-<urlId> but not the bare /doc/<urlId> that sync tools
+    record. Outline fixes up a slug that differs from its own, so ours only has to be present."""
+    m = re.match(r"^(https?://[^/]+/doc/)([A-Za-z0-9]{10,15})/?$", url)
+    if not m:
+        return url
+    return f"{m.group(1)}{sess.slugify(title, max_len=80) or 'doc'}-{m.group(2)}"
+
+
 def read_url(path: Path) -> str | None:
     try:
         fm, _ = split_frontmatter(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return None
     m = URL.search("\n".join(fm))
-    return m.group(1) if m else None
+    if not m:
+        return None
+    title = next((l.split(":", 1)[1].strip().strip("\"'") for l in fm if l.startswith("outline_title:")), "")
+    return canonical(m.group(1), title)
 
 
 def copy_to_clipboard(text: str) -> None:

@@ -169,10 +169,11 @@ def test_outline_note_and_republish_keeps_sync_keys(cfg, tmp_path):
     assert '  - "Ravi Kumar"' in text and "\n# Drone sync\n" in text
     assert text.index("## Summary") < text.index("## Transcript") < text.index("**[00:05] Ravi Kumar:**")
     # the sync daemon adds its keys; a re-publish rewrites the body but keeps them and the URL
-    synced = text.replace("---\n# Drone", "outline_id: abc\noutline_url: https://docs.example/doc/x\n---\n# Drone", 1)
+    synced = text.replace("---\n# Drone", "outline_id: abc\noutline_title: Drone sync\n"
+                          "outline_url: https://docs.example/doc/AbCdEfGhIj\n---\n# Drone", 1)
     path.write_text(synced)
     path2, url2 = outline.publish(cfg, s, wait=False)
-    assert path2 == path and url2 == "https://docs.example/doc/x"
+    assert path2 == path and url2 == "https://docs.example/doc/drone-sync-AbCdEfGhIj"  # the form that opens
     assert path.read_text().count("outline_id: abc") == 1
     assert s.read()["outline_url"] == url2
 
