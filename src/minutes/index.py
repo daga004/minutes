@@ -11,6 +11,7 @@ existing rows are never rewritten, and a meeting already listed is not added aga
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from . import merge, outline
@@ -62,6 +63,8 @@ HEADER = (f"---\ntype: Note\n---\n# {TITLE}\n\n"
 
 
 SEPARATOR = "|---|---|---|---|"
+# The header's divider row, in whatever form Outline saved it ("|------|:---|" ...).
+DIVIDER = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", re.M)
 
 
 def append(cfg: Config, sessions: list[sess.Session]) -> tuple[Path, int]:
@@ -80,11 +83,13 @@ def append(cfg: Config, sessions: list[sess.Session]) -> tuple[Path, int]:
             continue
         dur = merge.fmt_time(r["dur"]) if r["dur"] else ""
         line = f"| {r['date']} | {link(cfg, r)} | {dur} | {cell(r['facts'])} |"
-        at = text.find(SEPARATOR)
-        if at == -1:  # table header edited away: start a new table at the end
+        m = DIVIDER.search(text)
+        if not m:  # table header edited away: start a new table at the end
             text = text.rstrip("\n") + "\n\n| Date | Meeting | Duration | Key facts |\n" + SEPARATOR + "\n"
-            at = text.find(SEPARATOR)
-        cut = text.index("\n", at) + 1 if "\n" in text[at:] else len(text)
+            m = DIVIDER.search(text)
+        cut = m.end() + 1 if m.end() < len(text) else len(text)
+        if cut > len(text):
+            text += "\n"
         text = text[:cut] + line + "\n" + text[cut:]
         added += 1
     if added:

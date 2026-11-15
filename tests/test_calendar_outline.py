@@ -216,6 +216,16 @@ def test_index_is_append_only(cfg, tmp_path):
     outline.publish(cfg, s2, wait=False)
     assert index.append(cfg, [s2])[1] == 1
     table = p.read_text().split(index.SEPARATOR + "\n", 1)[1].splitlines()
+    # Outline reformats the table when it syncs; new rows still go right under its header
+    p.write_text(p.read_text().replace(index.SEPARATOR, "|------|---------|----------|-----------|"))
+    s3 = _session_with_speech(cfg, None)
+    s3.update(started_at="2026-11-18T09:00:00+05:30")
+    s3 = summarize.run(cfg, s3, summarizer=fake)
+    s3.update(title="Hiring sync")
+    outline.publish(cfg, s3, wait=False)
+    assert index.append(cfg, [s3])[1] == 1
+    after = p.read_text().split("|-----------|\n", 1)[1].splitlines()
+    assert after[0].startswith("| 2026-11-18 09:00 | [[2026-11-18-hiring-sync") and p.read_text().count("| Date |") == 1
     assert table[0].startswith("| 2026-11-17 09:00 | [[2026-11-17-budget-call|Budget call]]")
     assert table[1].startswith("| 2026-11-16 10:00 | [[2026-11-16-drone-sync|Drone sync]]")
 
