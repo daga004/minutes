@@ -224,3 +224,5 @@ def test_key_facts_line_is_parsed():
     facts, body = summarize.split_facts("Key facts: Budget approved at 4 lakh; launch 1 Dec.\n\n## Summary\nok")
     assert facts == "Budget approved at 4 lakh; launch 1 Dec." and body.startswith("## Summary")
     assert summarize.split_facts("Key facts: none\n## Summary")[0] is None
+    assert summarize.split_facts("Key facts: none (only the first four minutes).\n## Summary")[0] is None
+    assert summarize.split_facts("Key facts: Nonetheless the budget is 4 lakh.\n")[0].startswith("Nonetheless")

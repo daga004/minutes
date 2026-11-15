@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .. import calendar, merge
 from .. import session as sess
 from ..config import Config
@@ -17,7 +19,8 @@ def split_facts(body: str) -> tuple[str | None, str]:
     if lines and lines[0].lower().lstrip("*_ ").startswith("key facts:"):
         facts = lines[0].split(":", 1)[1].strip().strip("*_ ")
         rest = "\n".join(lines[1:]).lstrip("\n")
-        return (None if facts.lower().rstrip(".") in ("", "none", "none recorded") else facts), rest
+        empty = not facts or re.match(r"(?i)none\b", facts)  # "none", "None recorded", "none (only ...)"
+        return (None if empty else facts), rest
     return None, body
 
 
