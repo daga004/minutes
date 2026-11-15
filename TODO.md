@@ -37,6 +37,10 @@ notes go to a `meetings/` folder in the personal Outline collection.
 - [x] Recorders in their own systemd scope (survive a bar/service restart)
 - [ ] Live check on a real WhatsApp call and Slack huddle (window titles, mute behaviour)
 
+### Open decisions
+- [ ] Colleague access: the personal collection is private (links show "not found" to others). Options: core_team collection, per-note share links, or add members
+- [ ] Sync daemon records bare /doc/<id> links that don't open (minutes now converts them; the daemon itself is unchanged)
+
 ### Later
 - [ ] Analytics: time by meeting / person / series / project
 - [ ] Follow-ups from the previous meeting in a series
