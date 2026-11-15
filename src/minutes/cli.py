@@ -235,6 +235,40 @@ def cmd_stats(args) -> int:
     return 0
 
 
+def cmd_bar(args) -> int:
+    import json as _json
+
+    from . import bar
+
+    print(_json.dumps(bar.state(_cfg()), ensure_ascii=False))
+    return 0
+
+
+def cmd_join(args) -> int:
+    """Open the meeting's call link; record it too if `record_on_join` is on (and not --no-record)."""
+    from . import bar, capture, prefs
+
+    cfg = _cfg()
+    e = _event_arg(cfg, args.event)
+    if not e.conference:
+        raise RuntimeError(f"{e.title!r} has no call link")
+    bar.open_url(e.conference)
+    print(f"opened {e.conference}")
+    record = prefs.load(cfg)["record_on_join"] if args.record is None else args.record
+    if record and not capture.is_recording(cfg):
+        args.no_live, args.no_match, args.trigger = False, True, "join"
+        return cmd_start(args)
+    return 0
+
+
+def cmd_set(args) -> int:
+    from . import prefs
+
+    value = args.value.lower() in ("1", "true", "on", "yes")
+    print(prefs.set_(_cfg(), args.key, value))
+    return 0
+
+
 def cmd_open(args) -> int:
     cfg = _cfg()
     s = sess.resolve(cfg, args.session)
@@ -369,6 +403,16 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--json", action="store_true")
     sa = add("stats", cmd_stats, "time spent in meetings")
     sa.add_argument("--json", action="store_true")
+
+    add("bar", cmd_bar, "state for the bar widget, as JSON")
+    jn = add("join", cmd_join, "open a meeting's call link (and record it if record_on_join is on)")
+    jn.add_argument("event", help="event uid (see `minutes events`)")
+    rg = jn.add_mutually_exclusive_group()
+    rg.add_argument("--record", dest="record", action="store_true", default=None, help="record regardless")
+    rg.add_argument("--no-record", dest="record", action="store_false", help="only open the link")
+    se = add("set", cmd_set, "change a bar setting, e.g. `minutes set record_on_join off`")
+    se.add_argument("key", choices=["record_on_join"])
+    se.add_argument("value", choices=["on", "off", "true", "false"])
 
     lv = add("live", cmd_live, "transcribe while recording, then finish (started by `start`)")
     lv.add_argument("session", nargs="?")

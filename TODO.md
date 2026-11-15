@@ -19,10 +19,11 @@ notes go to a `meetings/` folder in the personal Outline collection.
 - [x] Tests (synthetic calendar DB, no personal data), README, commit + push
 
 ### 2b. Bar widget
-- [ ] Next meeting + **Join** button (opens the call link, records if the toggle is on; right-click = join only)
-- [ ] Global toggle "record when I join"
-- [ ] Popup stats: total time in meetings (today / this week / all time); `minutes stats --json` done
-- [ ] Record in ~/dotfiles (change.sh), commit + push
+- [x] Next meeting + **Join** button (opens the call link, records if the toggle is on; right-click = join only)
+- [x] Global toggle "record when I join"
+- [x] Popup stats: total time in meetings (today / this week / this month / all time)
+- [x] Record in ~/dotfiles (change.sh), commit + push
+- [ ] Live check during a real meeting (Join -> recording dot -> stop -> Outline link)
 
 ### 2c. Call detector
 - [ ] Watch PipeWire mic users (ignore superwhisper / pw-record and minutes itself) + window titles

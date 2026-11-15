@@ -23,6 +23,9 @@ minutes link [ID] [--event UID | --none]    # show / set the calendar meeting of
 minutes events [--hours N] [--json]         # upcoming calendar meetings
 minutes start --event UID      # record and link to that meeting (otherwise matched automatically)
 minutes stats [--json]         # time in meetings: today, this week, this month, all time
+minutes join UID [--record | --no-record]   # open the call link; records if record_on_join is on
+minutes set record_on_join on|off
+minutes bar                    # JSON state for a status-bar widget
 minutes open [ID] [--print]
 minutes backends
 ```
@@ -102,6 +105,22 @@ right, action items get owners, and in a 1:1 "Them" becomes the other person. Th
 title names the session folder and the note; Claude's own title is kept as the topic.
 Wrong match? `minutes link ID` lists nearby events, `--event UID` relinks, then re-run
 `minutes summarize ID && minutes publish ID`.
+
+## Bar widget
+
+`minutes bar` prints everything a status bar needs as one JSON object: the recording (if
+any), today's meetings with a `joinable` flag (from 5 minutes before the start until the
+end, if there is a call link), time-in-meetings stats, the record-on-join setting and the
+last note's link. An Omarchy bar widget built on it shows:
+
+- **Recording:** red dot and elapsed time. Click to stop; right-click for the popup.
+- **A meeting to join:** "Join". Click opens the call and records it (when "record when I
+  join" is on); right-click joins without recording.
+- **Otherwise:** a dim mic icon that opens the popup.
+
+The popup shows time in meetings, the upcoming meetings with Join buttons, the "record when
+I join" switch, Record now / Stop, and a link to the last meeting's notes. Recordings under
+a minute are not counted as meetings.
 
 ## Outline notes
 
