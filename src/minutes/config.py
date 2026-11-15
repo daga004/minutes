@@ -36,6 +36,10 @@ class Config:
     min_voiced_seconds: float = 1.0  # chunks with less sound than this are treated as silent
     live: bool = True  # transcribe chunks while recording
     asr_options: dict[str, dict] = field(default_factory=dict)  # [asr.<backend>] tables
+    clean_transcript: bool = True  # [summary] clean_transcript: Claude tidies the full transcript
+    clean_language: str = "as-spoken"  # [summary] clean_language: "as-spoken" or "english"
+    calendar: dict = field(default_factory=dict)  # [calendar] (see calendar.py)
+    outline: dict = field(default_factory=dict)  # [outline] (see outline.py); off unless vault is set
 
     @property
     def sessions_dir(self) -> Path:
@@ -68,4 +72,8 @@ def load(path: Path | None = None) -> Config:
     cfg.silence_peak_db = float(transcribe.get("silence_peak_db", cfg.silence_peak_db))
     cfg.min_voiced_seconds = float(transcribe.get("min_voiced_seconds", cfg.min_voiced_seconds))
     cfg.live = bool(transcribe.get("live", cfg.live))
+    cfg.clean_transcript = bool(summary.get("clean_transcript", cfg.clean_transcript))
+    cfg.clean_language = str(summary.get("clean_language", cfg.clean_language))
+    cfg.calendar = dict(data.get("calendar", {}))
+    cfg.outline = dict(data.get("outline", {}))
     return cfg

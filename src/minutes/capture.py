@@ -11,10 +11,12 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
+from . import calendar
 from . import session as sess
 from .config import Config, runtime_dir
 from .notify import notify
@@ -133,7 +135,9 @@ def is_recording(cfg: Config) -> bool:
     return current(cfg) is not None
 
 
-def start(cfg: Config) -> sess.Session:
+def start(cfg: Config, event=None, match: bool = True, trigger: str = "manual") -> sess.Session:
+    """Start both recorders. `event` (a calendar.Event) links the session to that meeting;
+    otherwise, with `match`, the calendar is searched for the meeting happening now."""
     if is_recording(cfg):
         raise RuntimeError(f"already recording {_read_pidfile()['session_id']}")
     if not shutil.which("ffmpeg"):
@@ -168,11 +172,21 @@ def start(cfg: Config) -> sess.Session:
         raise
 
     s.set_state(sess.RECORDING, started_at=sess.now_iso(), started_epoch=time.time(),
-                chunk_seconds=cfg.chunk_seconds, sample_rate=cfg.sample_rate, streams=streams)
+                chunk_seconds=cfg.chunk_seconds, sample_rate=cfg.sample_rate, streams=streams,
+                trigger=trigger)
+    if event is None and match:
+        try:
+            event = calendar.match(cfg)
+        except Exception as e:  # the calendar is a nice-to-have; never lose a recording over it
+            print(f"calendar match failed: {e}", file=sys.stderr)
+    if event is not None:
+        calendar.save(s, event)
     runtime_dir().mkdir(parents=True, exist_ok=True)
     sess.atomic_write_json(pidfile(), {"session_id": s.id, "session_path": str(s.path),
-                                       "pids": pids, "started_at": sess.now_iso()})
-    notify("Recording meeting", f"Mic: {devices['me']}\nSystem: {devices['them']}")
+                                       "pids": pids, "started_at": sess.now_iso(),
+                                       "title": event.title if event else "", "trigger": trigger})
+    what = f"{event.title}\n" if event else ""
+    notify("Recording meeting", f"{what}Mic: {devices['me']}\nSystem: {devices['them']}")
     return s
 
 

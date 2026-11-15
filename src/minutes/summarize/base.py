@@ -47,6 +47,11 @@ About the transcript:
 - If the recorder used speakers instead of headphones, some "Them" speech can be repeated under
   "Me". Treat near-duplicate lines as one utterance by "Them".
 
+If a <meeting> block is given, it comes from the calendar invite. Use it to spell names and
+terms correctly, to name action-item owners, and to order the key points by agenda item where the
+discussion follows the agenda. Invitees may not have attended; only say someone said something
+if the transcript shows it. Agenda items that were not discussed go under Open questions.
+
 Write the minutes in English, as GitHub-flavoured Markdown.
 
 The very first line must be the meeting title: "# " followed by 3-8 English words naming what the
@@ -71,7 +76,5 @@ Bullets of unresolved questions or follow-ups. Write "None recorded." if there w
 
 Do not invent facts that are not in the transcript. Output only the Markdown, no preamble.
 
-<transcript>
 {transcript}
-</transcript>
 """

@@ -28,9 +28,13 @@ class ClaudeCLISummarizer:
         return cmd
 
     def summarize(self, transcript_md: str) -> str:
+        return self.complete(PROMPT.format(transcript=transcript_md))
+
+    def complete(self, prompt: str) -> str:
+        """One prompt in, the model's text out (no tools, no session saved)."""
         # Run from an empty dir so no project CLAUDE.md or settings leak into the prompt.
         with tempfile.TemporaryDirectory(prefix="minutes-claude-") as cwd:
-            r = subprocess.run(self.command(), input=PROMPT.format(transcript=transcript_md),
+            r = subprocess.run(self.command(), input=prompt,
                                capture_output=True, text=True, timeout=self.timeout, cwd=cwd)
         if r.returncode != 0 or not r.stdout.strip():
             raise RuntimeError(f"claude -p failed (exit {r.returncode}): {(r.stderr or r.stdout).strip()[:500]}")

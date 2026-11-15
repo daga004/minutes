@@ -5,7 +5,9 @@ A session is a folder; every pipeline stage reads and writes plain files inside 
     session.json
     audio/{me,them}/00000.flac ...
     transcripts/<backend>/{me,them}/00000.json ...
-    transcript.md
+    transcript.md          raw, from the ASR
+    transcript.clean.md    the same, tidied by Claude
+    meeting.json           the calendar event, if any
     summary.md
 """
 
@@ -70,6 +72,10 @@ class Session:
     @property
     def transcript_md(self) -> Path:
         return self.path / "transcript.md"
+
+    @property
+    def clean_md(self) -> Path:
+        return self.path / "transcript.clean.md"
 
     @property
     def summary_md(self) -> Path:

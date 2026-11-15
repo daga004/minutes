@@ -17,6 +17,12 @@ minutes process [ID]           # transcribe -> merge -> summarize (resumable)
 minutes transcribe [ID] [-b BACKEND] [-f]   # -f redoes chunks already done
 minutes merge [ID] [-b BACKEND]             # rebuild transcript.md from a backend's output
 minutes summarize [ID]
+minutes clean [ID]             # full transcript tidied by Claude -> transcript.clean.md
+minutes publish [ID]           # write the Outline note, print its link
+minutes link [ID] [--event UID | --none]    # show / set the calendar meeting of a session
+minutes events [--hours N] [--json]         # upcoming calendar meetings
+minutes start --event UID      # record and link to that meeting (otherwise matched automatically)
+minutes stats [--json]         # time in meetings: today, this week, this month, all time
 minutes open [ID] [--print]
 minutes backends
 ```
@@ -32,7 +38,9 @@ finishes the summary) or `minutes-process-<id>` (when live transcription was off
   session.json                       # state + per-stage status + title
   audio/{me,them}/00000.flac ...     # 30 s, 16 kHz mono FLAC chunks (never deleted)
   transcripts/<backend>/{me,them}/00000.json
-  transcript.md                      # interleaved Me / Them
+  meeting.json                       # the calendar event (frozen copy), if any
+  transcript.md                      # raw: interleaved Me / Them from the ASR
+  transcript.clean.md                # the same, every line kept, tidied by Claude
   summary.md
 ```
 
@@ -62,9 +70,47 @@ chunk_seconds = 30
 silence_peak_db = -45      # sound quieter than this counts as silence
 min_voiced_seconds = 1.0   # chunks with less sound than this are skipped (blips, pings)
 
+[summary]
+clean_transcript = true    # tidy the full transcript after the summary
+clean_language = "as-spoken"   # or "english" to translate it
+
+[calendar]
+backend = "omacal"         # or "none"
+# db = "~/.local/share/com.omacal.app/omacal.db"
+match_minutes = 10
+
+[outline]
+# vault = "~/Documents/notes"   # unset = no Outline note
+# folder = "Me/meetings"        # a folder your Outline sync daemon maps to a collection
+wait_seconds = 120
+
 [storage]
 # dir = "~/.local/share/minutes"
 ```
+
+## Calendar
+
+With [OmaCal](https://omacal.app) installed, a recording is matched to the meeting happening
+when it starts. The best match is the event whose Google Meet code is in an open window's
+title; then events with a call link, other invitees and your acceptance; then the closest
+start time. The event (title, agenda, attendees, organizer, series) is saved as
+`meeting.json`, so later calendar edits don't change it. Its database is only read, never
+written, and recurring meetings are expanded from their rules as OmaCal does.
+
+The calendar gives the summary the agenda and the attendees' names, so names are spelled
+right, action items get owners, and in a 1:1 "Them" becomes the other person. The calendar
+title names the session folder and the note; Claude's own title is kept as the topic.
+Wrong match? `minutes link ID` lists nearby events, `--event UID` relinks, then re-run
+`minutes summarize ID && minutes publish ID`.
+
+## Outline notes
+
+After the summary, `minutes` writes one Markdown note into `[outline] vault/folder`: the
+summary on top, then `## Transcript` with the full cleaned transcript. An Outline sync
+daemon (for example outline-sync-daemon) pushes it and writes `outline_url` into the
+frontmatter. `minutes` waits for that link, copies it to the clipboard and shows it in the
+"Meeting notes ready" notification. Publishing again updates the same Outline document.
+Everyone who can read that collection can read the transcript.
 
 ## Tara (default speech-to-text)
 

@@ -17,12 +17,27 @@ def _cfg() -> config_mod.Config:
     return config_mod.load()
 
 
+def _event_arg(cfg, uid: str | None):
+    from . import calendar
+
+    if not uid:
+        return None
+    cal = calendar.source(cfg)
+    e = cal.get(uid) if cal else None
+    if e is None:
+        raise LookupError(f"no calendar event {uid!r} (see `minutes events`)")
+    return e
+
+
 def cmd_start(args) -> int:
     from . import capture
 
     cfg = _cfg()
-    s = capture.start(cfg)
-    print(f"recording {s.id}  ({s.path})")
+    event = _event_arg(cfg, getattr(args, "event", None))
+    s = capture.start(cfg, event=event, match=not getattr(args, "no_match", False),
+                      trigger=getattr(args, "trigger", None) or "manual")
+    title = s.read().get("event", {}) or {}
+    print(f"recording {s.id}  ({s.path})" + (f"  · {title.get('title')}" if title.get("title") else ""))
     if cfg.live and not getattr(args, "no_live", False):
         _spawn(s, ["live", s.id], "live")
     return 0
@@ -133,6 +148,93 @@ def cmd_process(args) -> int:
     return 0 if ok else 2
 
 
+def cmd_link(args) -> int:
+    """Show, set or clear the calendar event a session belongs to."""
+    import time as _time
+
+    from . import calendar
+
+    cfg = _cfg()
+    s = sess.resolve(cfg, args.session)
+    if args.none:
+        calendar.save(s, None)
+        print(f"{s.id}: unlinked")
+        return 0
+    if args.event:
+        e = _event_arg(cfg, args.event)
+    else:
+        cur = calendar.load(s)
+        started = s.read().get("started_epoch") or _time.time()
+        cal = calendar.source(cfg)
+        near = cal.between(started - 3 * 3600, started + 3 * 3600) if cal else []
+        print(f"{s.id}: " + (f"linked to {cur.title!r} ({cur.uid})" if cur else "not linked"))
+        for ev in near:
+            print(f"  {_time.strftime('%a %H:%M', _time.localtime(ev.start))}  {ev.uid}  {ev.title}")
+        if near:
+            print(f"link with: minutes link {sess.base_id(s.id)} --event <uid>")
+        return 0
+    calendar.save(s, e)
+    print(f"{s.id}: linked to {e.title!r}; re-run `minutes summarize {sess.base_id(s.id)}` "
+          f"and `minutes publish {sess.base_id(s.id)}` to use it")
+    return 0
+
+
+def cmd_events(args) -> int:
+    import json as _json
+    import time as _time
+
+    from . import calendar
+
+    cfg = _cfg()
+    evs = calendar.upcoming(cfg, hours=args.hours)
+    if args.json:
+        print(_json.dumps([{"uid": e.uid, "title": e.title, "start": e.start, "end": e.end,
+                            "conference": e.conference, "people": len(e.others)} for e in evs]))
+        return 0
+    for e in evs:
+        when = _time.strftime("%a %H:%M", _time.localtime(e.start))
+        print(f"{when}  {e.title}  ({len(e.others)} others){'  ' + e.conference if e.conference else ''}"
+              f"\n         {e.uid}")
+    return 0
+
+
+def cmd_clean(args) -> int:
+    from . import clean
+
+    cfg = _cfg()
+    s = clean.run(cfg, sess.resolve(cfg, args.session))
+    print(s.clean_md)
+    return 0
+
+
+def cmd_publish(args) -> int:
+    from . import outline
+
+    cfg = _cfg()
+    if not outline.enabled(cfg):
+        raise RuntimeError("Outline publishing is off; set [outline] vault (and folder) in "
+                           f"{config_mod.config_path()}")
+    s = sess.resolve(cfg, args.session)
+    path, url = outline.publish(cfg, s, wait=not args.no_wait)
+    print(path)
+    print(url or "no Outline link yet (is the sync daemon running?)")
+    return 0
+
+
+def cmd_stats(args) -> int:
+    import json as _json
+
+    from . import stats
+
+    st = stats.compute(_cfg())
+    if args.json:
+        print(_json.dumps(st))
+        return 0
+    for k, label in (("today", "Today"), ("week", "This week"), ("month", "This month"), ("all", "All time")):
+        print(f"{label:<11} {stats.hm(st[k]['seconds']):>8}  {st[k]['meetings']} meeting(s)")
+    return 0
+
+
 def cmd_open(args) -> int:
     cfg = _cfg()
     s = sess.resolve(cfg, args.session)
@@ -229,8 +331,11 @@ def build_parser() -> argparse.ArgumentParser:
         return sp
 
     add("toggle", cmd_toggle, "start recording, or stop and process (bind this to a hotkey)")
-    add("start", cmd_start, "start recording mic + system audio").add_argument(
-        "--no-live", action="store_true", help="don't transcribe while recording")
+    st = add("start", cmd_start, "start recording mic + system audio")
+    st.add_argument("--no-live", action="store_true", help="don't transcribe while recording")
+    st.add_argument("--event", help="calendar event uid to link (see `minutes events`)")
+    st.add_argument("--no-match", action="store_true", help="don't look up the calendar")
+    st.add_argument("--trigger", help=argparse.SUPPRESS)
     add("stop", cmd_stop, "stop recording (then process in background)").add_argument(
         "--no-process", action="store_true", help="only stop; don't transcribe/summarize")
     add("status", cmd_status, "show whether a recording is running")
@@ -247,6 +352,23 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("-b", "--backend", help="backend name (see `minutes backends`)")
         if name in ("transcribe", "process"):
             sp.add_argument("-f", "--force", action="store_true", help="redo chunks already transcribed")
+
+    for name, fn, help_ in [("clean", cmd_clean, "tidy the full transcript with Claude (transcript.clean.md)"),
+                            ("publish", cmd_publish, "write the Outline note (summary + transcript)")]:
+        sp = add(name, fn, help_)
+        sp.add_argument("session", nargs="?", help="session id or prefix (default: latest)")
+        if name == "publish":
+            sp.add_argument("--no-wait", action="store_true", help="don't wait for the Outline link")
+    lk = add("link", cmd_link, "show or set the calendar event of a session")
+    lk.add_argument("session", nargs="?")
+    g = lk.add_mutually_exclusive_group()
+    g.add_argument("--event", help="event uid")
+    g.add_argument("--none", action="store_true", help="unlink")
+    ev = add("events", cmd_events, "upcoming calendar events")
+    ev.add_argument("--hours", type=float, default=12)
+    ev.add_argument("--json", action="store_true")
+    sa = add("stats", cmd_stats, "time spent in meetings")
+    sa.add_argument("--json", action="store_true")
 
     lv = add("live", cmd_live, "transcribe while recording, then finish (started by `start`)")
     lv.add_argument("session", nargs="?")
