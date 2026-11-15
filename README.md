@@ -27,7 +27,7 @@ minutes join UID [--record | --no-record]   # open the call link; records if rec
 minutes set record_on_join on|off
 minutes bar                    # JSON state for a status-bar widget
 minutes watch                  # call detector (run as a user service, see below)
-minutes open [ID] [--print]
+minutes open [ID] [--print]    # opens notes.md
 minutes backends
 ```
 
@@ -46,6 +46,7 @@ finishes the summary) or `minutes-process-<id>` (when live transcription was off
   transcript.md                      # raw: interleaved Me / Them from the ASR
   transcript.clean.md                # the same, every line kept, tidied by Claude
   summary.md
+  notes.md                           # summary on top, full cleaned transcript below (= the Outline note)
 ```
 
 The folder is named by start time until the summary is written; the summarizer then titles the

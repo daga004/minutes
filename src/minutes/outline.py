@@ -149,6 +149,14 @@ def copy_to_clipboard(text: str) -> None:
         pass
 
 
+def write_local(cfg: Config, s: sess.Session) -> Path | None:
+    """<session>/notes.md: the same note as in Outline (summary, then the full transcript)."""
+    if not s.summary_md.exists():
+        return None
+    sess.atomic_write_text(s.notes_md, render(cfg, s, []))
+    return s.notes_md
+
+
 def publish(cfg: Config, s: sess.Session, wait: bool = True) -> tuple[Path, str | None] | None:
     """Write (or rewrite) the note. Returns (path, Outline URL or None), or None if disabled."""
     if not enabled(cfg) or not s.summary_md.exists():

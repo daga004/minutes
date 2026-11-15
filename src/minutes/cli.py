@@ -202,7 +202,10 @@ def cmd_clean(args) -> int:
     from . import clean
 
     cfg = _cfg()
+    from . import outline
+
     s = clean.run(cfg, sess.resolve(cfg, args.session))
+    outline.write_local(cfg, s)
     print(s.clean_md)
     return 0
 
@@ -215,6 +218,7 @@ def cmd_publish(args) -> int:
         raise RuntimeError("Outline publishing is off; set [outline] vault (and folder) in "
                            f"{config_mod.config_path()}")
     s = sess.resolve(cfg, args.session)
+    outline.write_local(cfg, s)
     path, url = outline.publish(cfg, s, wait=not args.no_wait)
     print(path)
     print(url or "no Outline link yet (is the sync daemon running?)")
@@ -279,7 +283,7 @@ def cmd_set(args) -> int:
 def cmd_open(args) -> int:
     cfg = _cfg()
     s = sess.resolve(cfg, args.session)
-    target = s.summary_md if s.summary_md.exists() else s.transcript_md if s.transcript_md.exists() else s.path
+    target = next((f for f in (s.notes_md, s.summary_md, s.transcript_md) if f.exists()), s.path)
     if args.print or not shutil.which("xdg-open"):
         print(target)
         return 0
@@ -426,7 +430,7 @@ def build_parser() -> argparse.ArgumentParser:
     lv.add_argument("session", nargs="?")
     lv.add_argument("-b", "--backend")
 
-    op = add("open", cmd_open, "open summary.md (or transcript / folder)")
+    op = add("open", cmd_open, "open notes.md (summary + transcript), else summary / transcript")
     op.add_argument("session", nargs="?")
     op.add_argument("--print", action="store_true", help="print the path instead of opening it")
     add("backends", cmd_backends, "list available ASR and summary backends")

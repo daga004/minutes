@@ -45,6 +45,11 @@ def finish(cfg: Config, s: sess.Session, failed_chunks: int = 0) -> None:
             problems.append(f"transcript not cleaned ({str(e)[:120]}); the note has the raw one")
     link = None
     try:
+        outline.write_local(cfg, s)
+    except Exception as e:
+        traceback.print_exc()
+        problems.append(f"notes.md not written: {str(e)[:120]}")
+    try:
         published = outline.publish(cfg, s)
         if published:
             note, url = published
@@ -55,6 +60,6 @@ def finish(cfg: Config, s: sess.Session, failed_chunks: int = 0) -> None:
     title = s.read().get("title") or s.id
     body = "\n".join([title, link + (" (link copied)" if link and link.startswith("http")
                                        and cfg.outline.get("copy_link", True) else "")
-                       if link else str(s.summary_md), *problems])
+                       if link else str(s.notes_md if s.notes_md.exists() else s.summary_md), *problems])
     notify("Meeting notes ready" + (" (with problems)" if problems else ""), body,
            urgency="critical" if problems else "normal")

@@ -164,6 +164,7 @@ def test_outline_note_and_republish_keeps_sync_keys(cfg, tmp_path):
     path, url = outline.publish(cfg, s, wait=False)
     assert path == tmp_path / "vault/Me/meetings/2026-11-16-drone-sync.md" and url is None
     text = path.read_text()
+    assert outline.write_local(cfg, s).read_text() == text  # notes.md in the session = the Outline note
     assert text.startswith("---\ntype: Meeting\ndate: 2026-11-16\n")
     assert '  - "Ravi Kumar"' in text and "\n# Drone sync\n" in text
     assert text.index("## Summary") < text.index("## Transcript") < text.index("**[00:05] Ravi Kumar:**")

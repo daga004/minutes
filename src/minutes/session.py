@@ -9,6 +9,7 @@ A session is a folder; every pipeline stage reads and writes plain files inside 
     transcript.clean.md    the same, tidied by Claude
     meeting.json           the calendar event, if any
     summary.md
+    notes.md               summary + cleaned transcript in one file (same as the Outline note)
 """
 
 from __future__ import annotations
@@ -76,6 +77,11 @@ class Session:
     @property
     def clean_md(self) -> Path:
         return self.path / "transcript.clean.md"
+
+    @property
+    def notes_md(self) -> Path:
+        """The finished meeting notes: summary on top, full cleaned transcript below."""
+        return self.path / "notes.md"
 
     @property
     def summary_md(self) -> Path:
