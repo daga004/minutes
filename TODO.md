@@ -26,10 +26,13 @@ notes go to a `meetings/` folder in the personal Outline collection.
 - [ ] Live check during a real meeting (Join -> recording dot -> stop -> Outline link)
 
 ### 2c. Call detector
-- [ ] Watch PipeWire mic users (ignore superwhisper / pw-record and minutes itself) + window titles
-- [ ] Popup "Call detected: <title> · Record / Ignore", once per call; calendar match for Meet codes
-- [ ] Auto-stop when the app releases the mic for 60 s
-- [ ] systemd user service, tests, commit + push
+- [x] Watch PipeWire mic users (ignore superwhisper / pw-record and minutes itself) + window titles
+- [x] Popup "Call detected: <title> · Record / Ignore", once per call; calendar match for Meet codes
+- [x] Auto-stop when the app releases the mic for 60 s
+- [x] systemd user service, tests, commit + push
+
+- [x] Recorders in their own systemd scope (survive a bar/service restart)
+- [ ] Live check on a real WhatsApp call and Slack huddle (window titles, mute behaviour)
 
 ### Later
 - [ ] Analytics: time by meeting / person / series / project

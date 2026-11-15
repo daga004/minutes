@@ -261,6 +261,13 @@ def cmd_join(args) -> int:
     return 0
 
 
+def cmd_watch(args) -> int:
+    from . import watch
+
+    watch.run(_cfg())
+    return 0
+
+
 def cmd_set(args) -> int:
     from . import prefs
 
@@ -410,6 +417,7 @@ def build_parser() -> argparse.ArgumentParser:
     rg = jn.add_mutually_exclusive_group()
     rg.add_argument("--record", dest="record", action="store_true", default=None, help="record regardless")
     rg.add_argument("--no-record", dest="record", action="store_false", help="only open the link")
+    add("watch", cmd_watch, "detect calls and offer to record them (run as a user service)")
     se = add("set", cmd_set, "change a bar setting, e.g. `minutes set record_on_join off`")
     se.add_argument("key", choices=["record_on_join"])
     se.add_argument("value", choices=["on", "off", "true", "false"])

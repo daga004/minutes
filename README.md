@@ -26,6 +26,7 @@ minutes stats [--json]         # time in meetings: today, this week, this month,
 minutes join UID [--record | --no-record]   # open the call link; records if record_on_join is on
 minutes set record_on_join on|off
 minutes bar                    # JSON state for a status-bar widget
+minutes watch                  # call detector (run as a user service, see below)
 minutes open [ID] [--print]
 minutes backends
 ```
@@ -121,6 +122,41 @@ last note's link. An Omarchy bar widget built on it shows:
 The popup shows time in meetings, the upcoming meetings with Join buttons, the "record when
 I join" switch, Record now / Stop, and a link to the last meeting's notes. Recordings under
 a minute are not counted as meetings.
+
+## Call detection
+
+`minutes watch` notices calls that weren't started from the bar (WhatsApp, Slack huddles, a
+Meet link someone pastes): any app that keeps the microphone open for 15 s while nothing is
+being recorded gets a notification, **Record / Ignore**, once per call. Dictation tools
+(`pw-record`, Superwhisper) and minutes' own recorder are ignored. If it's a calendar meeting
+(its Meet code is in a window title), the notification names it and the recording is linked.
+
+A recording that belongs to a call (started from that notification, from Join, or running
+while a call was seen) stops by itself when the call ends: no app on the mic and no call window
+(Meet tab, huddle, Zoom, Teams) for 60 s. Recordings started by hand with no call are never
+stopped automatically.
+
+```ini
+# ~/.config/systemd/user/minutes-watch.service
+[Unit]
+Description=minutes: detect calls and offer to record them
+PartOf=graphical-session.target
+After=graphical-session.target pipewire-pulse.service
+
+[Service]
+ExecStart=%h/.local/bin/minutes watch
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target
+```
+
+`systemctl --user enable --now minutes-watch`. Settings: `[watch] min_seconds`,
+`end_grace_seconds`, `auto_stop`, `ignore` (app or binary names).
+
+Recorders run in their own systemd scope (`minutes-rec-<id>-me/them`), so restarting the bar,
+the detector or the terminal that started a recording doesn't stop it.
 
 ## Outline notes
 

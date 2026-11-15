@@ -47,6 +47,16 @@ def ffmpeg_cmd(device: str, out_dir: Path, cfg: Config, client_name: str) -> lis
     ]
 
 
+def own_scope(s: sess.Session, side: str) -> list[str]:
+    """Run each recorder in its own systemd scope, so it survives whatever started it: the bar
+    widget, the call detector service or a terminal can restart mid-meeting without killing the
+    recording. `systemd-run --scope` execs the command, so the pid is ffmpeg's own."""
+    if not shutil.which("systemd-run") or os.environ.get("MINUTES_NO_SCOPE"):
+        return []
+    unit = f"minutes-rec-{sess.base_id(s.id)}-{side}".replace("_", "-")
+    return ["systemd-run", "--user", "--scope", "--quiet", "--collect", f"--unit={unit}"]
+
+
 def _alive(pid: int) -> bool:
     try:
         # Reap if it happens to be our child (same-process start/stop, e.g. tests).
@@ -151,7 +161,7 @@ def start(cfg: Config, event=None, match: bool = True, trigger: str = "manual") 
         for side in sess.SIDES:
             log = (s.logs_dir / f"ffmpeg-{side}.log").open("ab")
             p = subprocess.Popen(
-                ffmpeg_cmd(devices[side], s.audio_dir(side), cfg, f"minutes-{side}"),
+                own_scope(s, side) + ffmpeg_cmd(devices[side], s.audio_dir(side), cfg, f"minutes-{side}"),
                 stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True,
             )
             log.close()

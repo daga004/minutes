@@ -40,6 +40,7 @@ class Config:
     clean_language: str = "as-spoken"  # [summary] clean_language: "as-spoken" or "english"
     calendar: dict = field(default_factory=dict)  # [calendar] (see calendar.py)
     outline: dict = field(default_factory=dict)  # [outline] (see outline.py); off unless vault is set
+    watch: dict = field(default_factory=dict)  # [watch] (see watch.py)
 
     @property
     def sessions_dir(self) -> Path:
@@ -76,4 +77,5 @@ def load(path: Path | None = None) -> Config:
     cfg.clean_language = str(summary.get("clean_language", cfg.clean_language))
     cfg.calendar = dict(data.get("calendar", {}))
     cfg.outline = dict(data.get("outline", {}))
+    cfg.watch = dict(data.get("watch", {}))
     return cfg
